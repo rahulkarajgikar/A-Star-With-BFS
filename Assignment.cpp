@@ -223,7 +223,7 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 	//temp1 can be treated as a queue of all the states expanded
 	vector<puzzleState> temp1;
 	nodesExpanded++;
-	temp1 = expand(S,temp1);
+	temp1 = expand(S,allnodes);
 	vector<puzzleState> temp2 = temp1;
 	vector<puzzleState> temp3;
 	puzzleState C;
@@ -290,6 +290,8 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 	int nodesExpanded=0;
 	puzzleState S;
 	cout<<"\nFor heuristic "<<heuristic<<" and depth = "<<bfsDepth<<":\n\n";
+	cout<<"\n Initial state is:\n";
+	displayState(initialState);
 	if(heuristic=='m'){
 		//fringe is a queue sorted in increasing order of f(n) = depth + h(n)
 		priority_queue<puzzleState,vector<puzzleState>,compareManhattan> fringe;
@@ -307,10 +309,10 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 				//c gets the heuristic h(n), we then compute f(n) internally as h(n) + g(n), where g(n) is the number of steps till that point, ie depth
 				//depth is stored within the state itself.
 			}
-			if(fringe.size()>maxFringeSize)
+			if(fringe.size() > maxFringeSize)
 				maxFringeSize = fringe.size();
 			S = fringe.top();
-			cout<<"\n\n Node is\n";
+			cout<<"\n\nNext Node is\n";
 			displayState(S);
 			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
 			fringe.pop();
@@ -334,9 +336,9 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			if(fringe.size()>maxFringeSize)
 				maxFringeSize = fringe.size();
 			S = fringe.top();
-			cout<<"\n\n Node is\n";
+			cout<<"\n\nNext Node is\n";
 			displayState(S);
-			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
+			cout<<"\n\nCost of this node :"<<(S.depth + tileMismatch(S));
 			//displayState(S);
 			fringe.pop();
 		}
@@ -442,7 +444,7 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 	else if(heuristic=='t')
 		cout<<"\nTile Mismatch \t\t";
 	//Depth used
-	cout<<depth<<"          \t";
+	cout<<depth<<"         \t";
 	//isOptimal
 	cout<<checkOptimal(result.second)<<"              \t";
 	//Max Fringe Size
@@ -520,7 +522,7 @@ int main(int argc, char *argv[])
 		cout<<"\n\n\n\nIteration"<<i<<"";
 		cout<<"\nThe initial State is :\n";
 		displayState(initialState);
-		cout<<"\n\nHeuristic used\t Depth used\t Solution Optimal?\t Max Fringe Size\t Nodes Generated\n";
+		cout<<"\n\nHeuristic used\t   Depth used\t Solution Optimal?\t Max Fringe Size\t Nodes Generated\n";
 		displayCost(initialState,result1,'m',1);
 		displayCost(initialState,result2,'m',depth);	
 		displayCost(initialState,result3,'t',1);
@@ -529,7 +531,7 @@ int main(int argc, char *argv[])
 		displayPathTaken(initialState,result2.second,'m',depth);
 		displayPathTaken(initialState,result3.second,'t',1);
 		displayPathTaken(initialState,result4.second,'t',depth);
-		cout<<"\n\n";
+		cout<<"\n\n\n\n\n\n";
 	}
 	return 0;
 }
