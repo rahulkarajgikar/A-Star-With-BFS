@@ -371,7 +371,7 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 	'm' represents Manhattan Distance
 	't' represents Tile Mismatches
 */
-pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth){
+pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth, long &totalnodes){
 	int maxFringeSize=1;
 	int nodesExpanded=0;
 	puzzleState S;
@@ -399,10 +399,12 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 				S = fringe.top();
 				fringe.pop();
 			}
-			else
+			else{
+				totalnodes = allnodes.size();
 				break;
-			
+			}
 		}
+		totalnodes = allnodes.size();
 	}
 	else{
 		priority_queue<puzzleState,vector<puzzleState>,compareTileMismatch> fringe;
@@ -421,9 +423,17 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			}
 			if(fringe.size()>maxFringeSize)
 				maxFringeSize = fringe.size();
-			S = fringe.top();
-			fringe.pop();
+			if(fringe.size()!=0)
+			{
+				S = fringe.top();
+				fringe.pop();
+			}
+			else{
+				totalnodes = allnodes.size();
+				break;
+			}
 		}
+		totalnodes = allnodes.size();
 	}
 	//values are maxFringeSize, no of nodes generated(nodesExpanded), and final state(S)
 	pair<pair<int,int>,puzzleState> result;
@@ -486,7 +496,7 @@ puzzleState generateRandomSolvablePuzzle(){
 	start.positions[2][1] =7;
 	start.positions[2][2] =8;
 	start.depth=0;
-	int swaps = rand()%80;
+	int swaps = rand()%60;
 	int row,col;
 	int direction;
 	for(int i=0;i<swaps;i++){
@@ -559,7 +569,7 @@ string checkOptimal(puzzleState p){
 	Helper function for displaying the following:
 	Heuristic 	BfsDepth 	is Solution Optimal?	Max Fringe Size  	No of nodes expanded 	
 */
-void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> result, char heuristic, int depth){
+void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> result, char heuristic, int depth, long totalnodes){
 	//Heuristic
 	if(heuristic=='m')
 		cout<<"\nManhattan Dist\t\t";
@@ -571,10 +581,12 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 	cout<<checkOptimal(result.second)<<"              \t";
 	//Max Fringe Size
 	cout<<result.first.first<<"                \t";
-	//No of nodes generated
-	cout<<result.first.second<<"		\t";
+	//No of nodes expanded
+	cout<<result.first.second<<"	\t";
 	//How deep is the solution
-	cout<<result.second.depth;
+	cout<<result.second.depth<<"		\t";
+	//Total number of nodes in the graph
+	cout<<totalnodes;
 
 }
 /*
@@ -598,7 +610,11 @@ puzzleState createTest(){
 int main()
 {
 	int depth;
-	cout<<"Enter the depth of depth limiting BFS: ";
+	long totalnodes1;
+	long totalnodes2;
+	long totalnodes3;
+	long totalnodes4;
+	cout<<"Enter the depth of depth limiting BFS (please note: some iterations might be very slow with high depths or complex solutions): ";
 	cin>>depth;	
 	//cout<<"ASDF";
 	puzzleState initialState;
@@ -617,25 +633,25 @@ int main()
 			continue;
 		}
 
-		result1 = modifiedAStar(initialState, 'm', 1); 
-		result2 = modifiedAStar(initialState, 'm', depth);
-		result3 = modifiedAStar(initialState, 't', 1);
-		result4 = modifiedAStar(initialState, 't', depth);
+		result1 = modifiedAStar(initialState, 'm', 1, totalnodes1); 
+		result2 = modifiedAStar(initialState, 'm', depth, totalnodes2);
+		result3 = modifiedAStar(initialState, 't', 1, totalnodes3);
+		result4 = modifiedAStar(initialState, 't', depth, totalnodes4);
 
 		cout<<"\n\n\n\nIteration "<<i<<":";
 		cout<<"\nStart State is :\n";
 		displayState(initialState);
-		cout<<"\n\nHeuristic used\t BFSDepth used\t Solution Optimal?\t Max Fringe Size\t Nodes Expanded\t Depth of Solution\n";
-		displayCost(initialState,result1,'m',1);
-		displayCost(initialState,result2,'m',depth);	
-		displayCost(initialState,result3,'t',1);
-		displayCost(initialState,result4,'t',depth);
+		cout<<"\n\nHeuristic used\t BFSDepth used\t Solution Optimal?\t Max Fringe Size\t Nodes Expanded\t Depth of Solution\t Total Nodes in Graph\n";
+		displayCost(initialState,result1,'m',1, totalnodes1);
+		displayCost(initialState,result2,'m',depth, totalnodes2);	
+		displayCost(initialState,result3,'t',1, totalnodes3);
+		displayCost(initialState,result4,'t',depth, totalnodes4);
 		cout<<"\n\n\n\n\n\n";
 	}
 
 	cout<<"\nFrom this, we can conclude that Manhattan distance is a better heuristic than tile mismatches.\n\n";
-	cout<<"\nNote: Nodes expanded is the number of nodes whose children we added to the list. It is not the number of nodes in the graph.\n";
-	cout<<"Total number of nodes in the graph can easily be calculated, by checking the size of the allnodes vector.\n\n";
+	cout<<"\nNote: Total nodes includes all the nodes that are yet to be seached also. It is used to represent how many extra nodes were expanded, that were";
+	cout<<" never reached because we reached the goal state before\n\n";
 	return 0;
 }
 
