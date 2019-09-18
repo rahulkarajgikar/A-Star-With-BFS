@@ -635,7 +635,7 @@ int main()
 
 	cout<<"\nFrom this, we can conclude that Manhattan distance is a better heuristic than tile mismatches.\n\n";
 	cout<<"\nNote: Nodes expanded is the number of nodes whose children we added to the list. It is not the number of nodes in the graph.\n";
-	cout<<"Total number of nodes in the graph can easily be calculated, by checking the size of the allnodes vector.";
+	cout<<"Total number of nodes in the graph can easily be calculated, by checking the size of the allnodes vector.\n\n";
 	return 0;
 }
 
