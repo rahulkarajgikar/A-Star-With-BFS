@@ -26,7 +26,9 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <stack>
 #include <ctime>
+#include <cstdlib>
 
 
 using namespace std;
@@ -34,8 +36,20 @@ using namespace std;
 struct puzzleState{
 	int positions[3][3]; 
 	int depth;
+	puzzleState* parent;
 	//depth from starting state
 };
+
+
+void displayState(puzzleState S){
+	for(int i=0;i<3;i++){
+		cout<<"\n";
+		for(int j=0;j<3;j++){
+			cout<<S.positions[i][j]<<"\t";
+		}
+	}
+	cout<<"\n";
+}
 
 int actualRow(int num,int totalColumns){
 	return num / totalColumns;
@@ -50,7 +64,7 @@ int manhattanDistance(puzzleState p){
 	for(int i=0;i<3;i++){
 		for(int j=0;j<3;j++){
 			if(p.positions[i][j]!=0)
-				distance += i - actualRow(p.positions[i][j],3) + j - actualColumn(p.positions[i][j],3);
+				distance += abs(i - actualRow(p.positions[i][j],3)) + abs(j - actualColumn(p.positions[i][j],3));
 		}
 	}
 	return distance;
@@ -69,9 +83,9 @@ int tileMismatch(puzzleState p){
 } 
 
 bool goalTest(puzzleState p){
-	if( p.positions[0][0] == 0 && p.positions[0][1] == 1 && p.positions[0][2] == 3 &&
-		p.positions[1][0] == 4 && p.positions[1][1] == 5 && p.positions[1][2] == 6 &&
-		p.positions[2][0] == 7 && p.positions[2][1] == 8 && p.positions[2][2] == 9 )
+	if( p.positions[0][0] == 0 && p.positions[0][1] == 1 && p.positions[0][2] == 2 &&
+		p.positions[1][0] == 3 && p.positions[1][1] == 4 && p.positions[1][2] == 5 &&
+		p.positions[2][0] == 6 && p.positions[2][1] == 7 && p.positions[2][2] == 8 )
 		return true;
 	else
 		return false;
@@ -142,6 +156,7 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row-1][col]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
+		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -156,6 +171,7 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row+1][col]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
+		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -170,6 +186,7 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row][col-1]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
+		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -184,6 +201,7 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row][col+1] = temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1;
+		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -201,9 +219,10 @@ vector<puzzleState> append(vector<puzzleState> temp1, vector<puzzleState> temp3)
 	return temp1;
 }
 
-vector<puzzleState> modifiedExpand(puzzleState S, int depth){
+vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded, vector<puzzleState> &allnodes){
 	//temp1 can be treated as a queue of all the states expanded
 	vector<puzzleState> temp1;
+	nodesExpanded++;
 	temp1 = expand(S,temp1);
 	vector<puzzleState> temp2 = temp1;
 	vector<puzzleState> temp3;
@@ -213,9 +232,11 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth){
 		for(auto it = temp2.begin();it!=temp2.end();it++){
 			C = (*it);
 			//temp3 stores newly discovered expanded nodes
-			temp3 = expand(C, temp1);
+			temp3 = expand(C, allnodes);
+			nodesExpanded++;
 			//temp1 stores all nodes that have been visited by the depth limited BFS
 			temp1 = append(temp1, temp3);
+			allnodes = append(allnodes, temp3);
 		}
 		d--;
 		temp2 = temp3;
@@ -249,6 +270,7 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth){
 	10: end while
 	11: return S
 */
+
 struct compareManhattan{
 	bool operator()(puzzleState const& p1, puzzleState const& p2){
 		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
@@ -264,20 +286,20 @@ struct compareTileMismatch{
 
 
 pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth){
-	int maxFringeSize=0;
+	int maxFringeSize=1;
 	int nodesExpanded=0;
 	puzzleState S;
+	cout<<"\nFor heuristic "<<heuristic<<" and depth = "<<bfsDepth<<":\n\n";
 	if(heuristic=='m'){
 		//fringe is a queue sorted in increasing order of f(n) = depth + h(n)
 		priority_queue<puzzleState,vector<puzzleState>,compareManhattan> fringe;
 		vector<puzzleState> temp;
+		vector<puzzleState> allnodes;
+		allnodes.push_back(initialState);
 		puzzleState T;
 		S = initialState;
 		while(!goalTest(S)){
-			nodesExpanded++;
-			temp = modifiedExpand(S,bfsDepth);
-			if(temp.size()>maxFringeSize)
-				maxFringeSize = temp.size();
+			temp = modifiedExpand(S,bfsDepth,nodesExpanded, allnodes);
 			for(auto it = temp.begin(); it!=temp.end(); it++){
 				T=(*it);
 				fringe.push(T);
@@ -285,27 +307,37 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 				//c gets the heuristic h(n), we then compute f(n) internally as h(n) + g(n), where g(n) is the number of steps till that point, ie depth
 				//depth is stored within the state itself.
 			}
+			if(fringe.size()>maxFringeSize)
+				maxFringeSize = fringe.size();
 			S = fringe.top();
+			cout<<"\n\n Node is\n";
+			displayState(S);
+			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
 			fringe.pop();
 		}
 	}
 	else{
 		priority_queue<puzzleState,vector<puzzleState>,compareTileMismatch> fringe;
 		vector<puzzleState> temp;
+		vector<puzzleState> allnodes;
+		allnodes.push_back(initialState);
 		puzzleState T;
 		S = initialState;
 		while(!goalTest(S)){
-			nodesExpanded++;
-			temp = modifiedExpand(S,bfsDepth);
-			if(temp.size()>maxFringeSize)
-				maxFringeSize = temp.size();	
+			temp = modifiedExpand(S,bfsDepth,nodesExpanded, allnodes);	
 			for(auto it = temp.begin(); it!=temp.end(); it++){
 				T=(*it);
 				fringe.push(T);
 				//c gets the heuristic h(n), we then compute f(n) internally as h(n) + g(n), where g(n) is the number of steps till that point, ie depth
 				//depth is stored within the state itself.
 			}
+			if(fringe.size()>maxFringeSize)
+				maxFringeSize = fringe.size();
 			S = fringe.top();
+			cout<<"\n\n Node is\n";
+			displayState(S);
+			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
+			//displayState(S);
 			fringe.pop();
 		}
 	}
@@ -395,15 +427,6 @@ puzzleState generateRandomSolvablePuzzle(){
 	A state is said to be solvable if it has an even number of inversions
 */
 
-void displayState(puzzleState S){
-	for(int i=0;i<3;i++){
-		cout<<"\n";
-		for(int j=0;j<3;j++){
-			cout<<S.positions[i][j]<<"\t";
-		}
-	}
-	cout<<"\n";
-}
 
 string checkOptimal(puzzleState p){
 	if(goalTest(p))
@@ -415,9 +438,9 @@ string checkOptimal(puzzleState p){
 void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> result, char heuristic, int depth){
 	//Heuristic
 	if(heuristic=='m')
-		cout<<"\nManhattan Dist\t";
+		cout<<"\nManhattan Dist\t\t";
 	else if(heuristic=='t')
-		cout<<"\nTile Mismatch \t";
+		cout<<"\nTile Mismatch \t\t";
 	//Depth used
 	cout<<depth<<"          \t";
 	//isOptimal
@@ -430,23 +453,66 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 
 }
 
-int main(int argc, char* argv[])
-{
-	int depth=2;	
-	cout<<"Enter the depth value:";
-	cin>>depth;
-	cout<<"AS";
+puzzleState createTest(){
 	puzzleState initialState;
+	initialState.positions[0][0]=1;
+	initialState.positions[0][1]=2;
+	initialState.positions[0][2]=0;
+	initialState.positions[1][0]=3;
+	initialState.positions[1][1]=4;
+	initialState.positions[1][2]=5;
+	initialState.positions[2][0]=6;
+	initialState.positions[2][1]=7;
+	initialState.positions[2][2]=8;
+	initialState.depth=0;
+	initialState.parent=NULL;
+	return initialState;
+
+}
+
+void displayPathTaken(puzzleState initialState, puzzleState p, char heuristic, int depth){
+	if(heuristic == 'm'){
+		cout<<"\n Path taken for Manhattan Distance Heuristic with depth = "<<depth<<"\n";
+	}
+	else if(heuristic == 't'){
+		cout<<"\n Path taken for Tile Mismatch Heuristic with depth = "<<depth<<"\n";	
+	}
+	puzzleState temp = p;
+	stack<puzzleState> path;
+	while(temp.depth!=0){
+		path.push(temp);
+		temp = *(temp.parent);
+	}
+	cout<<"HELLO";
+	path.push(initialState);
+	while(!path.empty()){
+		displayState(path.top());
+		cout<<"\n";
+		path.pop();
+	}
+	displayState(p);
+}
+
+int main(int argc, char *argv[])
+{
+	int depth=atoi(argv[1]);	
+	//cout<<"ASDF";
+	cout<<depth;
+	puzzleState initialState;
+	srand(time(NULL));
 	//Values are maxFringeSize, no of nodes generated, and final state
 	pair<pair<int,int>,puzzleState> result1;
 	pair<pair<int,int>,puzzleState> result2;
 	pair<pair<int,int>,puzzleState> result3;
 	pair<pair<int,int>,puzzleState> result4;
 
-	for(int i=0;i<10;i++){
-		initialState = generateRandomSolvablePuzzle();
+	for(int i=0;i<1;i++){
+		//initialState = generateRandomSolvablePuzzle();
 		//'m' represents manhattan distance as heuristic
 		//'t' represents tile mismatches as heuristic
+
+		initialState = createTest();
+
 		result1 = modifiedAStar(initialState, 'm', 1); 
 		result2 = modifiedAStar(initialState, 'm', depth);
 		result3 = modifiedAStar(initialState, 't', 1);
@@ -459,6 +525,11 @@ int main(int argc, char* argv[])
 		displayCost(initialState,result2,'m',depth);	
 		displayCost(initialState,result3,'t',1);
 		displayCost(initialState,result4,'t',depth);
+		displayPathTaken(initialState,result1.second,'m',1);
+		displayPathTaken(initialState,result2.second,'m',depth);
+		displayPathTaken(initialState,result3.second,'t',1);
+		displayPathTaken(initialState,result4.second,'t',depth);
+		cout<<"\n\n";
 	}
 	return 0;
 }
