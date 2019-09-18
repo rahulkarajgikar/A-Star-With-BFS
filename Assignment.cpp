@@ -14,97 +14,23 @@
 		fringe throughout) of all the four calls for the different initial states.
 */
 
-
-
 /*
-	What is left:
-	Finish modifiedexpand and modifiedAstar
-	generate random initial cases
-	check them to see if they are solvable(even number of inversions) before generating them
-	compare results for all 4 calls, for 10 different initial states
+	Algorithm 1: Modified A*
+	Require: I: The Initial State
+	Require: h: The Heuristic Function
+	Require: depth: The BFS Depth
+	1: fringe← []
+	2: S ← I
+	3: f ← 0
+	4: while ¬Goal-Test(S) do
+	5: temp←ModifiedExpand(S, depth)
+	6: for each T ∈temp do
+	7: UpdateFringe(fringe, T, f = h(T) + g(T))
+	8: end for
+	9: S ←RemoveFirst(fringe)
+	10: end while
+	11: return S
 */
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <stack>
-#include <ctime>
-#include <cstdlib>
-
-
-using namespace std;
-
-struct puzzleState{
-	int positions[3][3]; 
-	int depth;
-	puzzleState* parent;
-	//depth from starting state
-};
-
-
-void displayState(puzzleState S){
-	for(int i=0;i<3;i++){
-		cout<<"\n";
-		for(int j=0;j<3;j++){
-			cout<<S.positions[i][j]<<"\t";
-		}
-	}
-	cout<<"\n";
-}
-
-int actualRow(int num,int totalColumns){
-	return num / totalColumns;
-}
-
-int actualColumn(int num, int totalColumns){
-	return num % totalColumns;
-}
-
-int manhattanDistance(puzzleState p){
-	int distance=0;
-	for(int i=0;i<3;i++){
-		for(int j=0;j<3;j++){
-			if(p.positions[i][j]!=0)
-				distance += abs(i - actualRow(p.positions[i][j],3)) + abs(j - actualColumn(p.positions[i][j],3));
-		}
-	}
-	return distance;
-}
-
-int tileMismatch(puzzleState p){
-	int mismatches=0;	
-	for(int i=0;i<3;i++){
-		for(int j=0;j<3;j++){
-			if(p.positions[i][j]!=0)
-				if(i!=actualRow(p.positions[i][j],3) || j!=actualColumn(p.positions[i][j],3))
-					mismatches++;
-		}
-	}
-	return mismatches;
-} 
-
-
-struct compareManhattan{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
-		//sorts in ascending order
-	}
-};
-
-struct compareTileMismatch{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
-	}
-};
-
-bool goalTest(puzzleState p){
-	if( p.positions[0][0] == 0 && p.positions[0][1] == 1 && p.positions[0][2] == 2 &&
-		p.positions[1][0] == 3 && p.positions[1][1] == 4 && p.positions[1][2] == 5 &&
-		p.positions[2][0] == 6 && p.positions[2][1] == 7 && p.positions[2][2] == 8 )
-		return true;
-	else
-		return false;
-}
-
 
 /*
 	Algorithm 2: ModifiedExpand
@@ -124,6 +50,143 @@ bool goalTest(puzzleState p){
 	12: end while
 	13: return temp1
 */
+
+/* 
+
+		Functions used							Description
+
+*/
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <cstdlib>
+
+
+using namespace std;
+
+
+/*
+*	Stores the state of the puzzle at any given point. Depth represents the depth from the initial state.
+*	Depth for initial state is 0.
+*/
+struct puzzleState{
+	int positions[3][3]; 
+	int depth;
+	//depth from starting state
+};
+
+/*
+	Used to display the puzzle State
+*/
+void displayState(puzzleState S){
+	for(int i=0;i<3;i++){
+		cout<<"\n";
+		for(int j=0;j<3;j++){
+			cout<<S.positions[i][j]<<"\t";
+		}
+	}
+	cout<<"\n";
+}
+
+/*
+	Helper functions to convert a 1D position to a 2D position
+	eg: position 7 in the array would refer to [2][1].
+	row is 8/totalColumns = 2
+	col is 8%totalColumns = 1
+*/
+
+int actualRow(int num,int totalColumns){
+	return num / totalColumns;
+}
+
+int actualColumn(int num, int totalColumns){
+	return num % totalColumns;
+}
+
+/*
+	Function used to calculate the manhattan distance heuristic for a given state of the puzzle
+	Manhattan distance for one position is the sum of sideways distances to its actual position
+	eg: if number 8 is at [1][0].
+	Its actual position in the goal state is [2][2]	
+	So manhattan distance for 8 is (2-1) + (2-0) = 3
+	We find manhattan distance individually for all positions and add them up to get the heuristic for the given state.
+*/
+
+int manhattanDistance(puzzleState p){
+	int distance=0;
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			if(p.positions[i][j]!=0)
+				distance += abs(i - actualRow(p.positions[i][j],3)) + abs(j - actualColumn(p.positions[i][j],3));
+		}
+	}
+	return distance;
+}
+/*
+	Function used to find the number of tiles that are not in their correct position
+	eg: 
+	[ 1 3 5
+	  0 4 7
+	  6	2 8 ] 
+
+	  would have tile mismatch heuristic of 5, becaue [1,3,5,7,2] are not in their correct positions
+*/
+
+int tileMismatch(puzzleState p){
+	int mismatches=0;	
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			if(p.positions[i][j]!=0)
+				if(i!=actualRow(p.positions[i][j],3) || j!=actualColumn(p.positions[i][j],3))
+					mismatches++;
+		}
+	}
+	return mismatches;
+} 
+
+/*
+	Helper structures used to define a priority queue sorted in order of f(n) = g(n) + h(n)
+	where g(n) is the cost of reaching that state (no of steps to reach that state)
+	and h(n) is the heuristic
+*/
+
+struct compareManhattan{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
+		//sorts in ascending order
+	}
+};
+
+struct compareTileMismatch{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
+	}
+};
+
+/*
+	Function to test if a given state is the the goal state:
+	[0  1  2
+	 3  4  5
+	 6  7  8]
+*/
+
+bool goalTest(puzzleState p){
+	if( p.positions[0][0] == 0 && p.positions[0][1] == 1 && p.positions[0][2] == 2 &&
+		p.positions[1][0] == 3 && p.positions[1][1] == 4 && p.positions[1][2] == 5 &&
+		p.positions[2][0] == 6 && p.positions[2][1] == 7 && p.positions[2][2] == 8 )
+		return true;
+	else
+		return false;
+}
+
+
+/*
+	Function to see if 2 puzzleStates have the same configuration of board
+	Returns true if same config, else false.
+*/
+
 bool checkEqualPositions(puzzleState p1, puzzleState p2){
 	for(int i=0;i<3;i++){
 		for(int j=0;j<3;j++){
@@ -134,6 +197,10 @@ bool checkEqualPositions(puzzleState p1, puzzleState p2){
 	return true;
 }
 
+/*
+	Checks if a particular node check has already been visited or not
+	if it has, returns true. Else false.
+*/
 bool isInPreviousQueue(vector<puzzleState> prev, puzzleState check){
 	puzzleState curr;
 	if(prev.size()==0)
@@ -145,6 +212,15 @@ bool isInPreviousQueue(vector<puzzleState> prev, puzzleState check){
 	}
 	return false;
 }
+
+/*
+	Function to expand a given node in a normal BFS manner.
+	It also makes sure that we don't expand to children that have already been visited.
+	i.e Prevent redundant nodes from appearing
+	Returns the children of a node
+	Checks in all 4 directions (up,down,left,right), and moves the 0 in those directions if possible to generate new children which
+	have not been previously visited
+*/
 vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 	//try all four combinations(up,down,left,right)
 	//add only valid ones into the queue, and only if these states are not already present
@@ -170,7 +246,6 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row-1][col]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
-		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -185,7 +260,6 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row+1][col]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
-		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -200,7 +274,6 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row][col-1]=temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1; 
-		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -215,7 +288,6 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 		temp.positions[row][col+1] = temp.positions[row][col];
 		temp.positions[row][col] = swap;
 		temp.depth = C.depth + 1;
-		temp.parent = &C;
 		//child has greater depth
 		//insert child only if it is not already in the queue, IE if it has not already been visited
 		if(!isInPreviousQueue(prev,temp))
@@ -223,6 +295,10 @@ vector<puzzleState> expand(puzzleState C, vector<puzzleState> prev){
 	}
 	return expansion;
 }
+
+/*
+	Helper function to append the contents of a vector of puzzleStates temp3 to temp1.
+*/
 
 vector<puzzleState> append(vector<puzzleState> temp1, vector<puzzleState> temp3){
 	puzzleState next;
@@ -232,6 +308,14 @@ vector<puzzleState> append(vector<puzzleState> temp1, vector<puzzleState> temp3)
 	}
 	return temp1;
 }
+
+/*
+	This function expands a node using depth-limited BFS. It uses expand() as a helper function to expand one node.
+	It expands all nodes from the parent till depth d, then adds them to a vector
+	In ModifiedAStar, this vector is converted to a priority queue sorted by the cost function f(n)
+	At each stage, the node with smallest cost is taken next and checked to see if it is a goal
+	We also make sure no redundant nodes are visited (covered in expand() function)
+*/
 
 vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded, vector<puzzleState> &allnodes){
 	//temp1 can be treated as a queue of all the states expanded
@@ -274,30 +358,18 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 
 
 
-//here, the character represents the heurisitic that is used
-//m for manhattan distance
-//t for tile_mismatch
-//returns max size of fringe and no of nodes generated
-
-//might have to write separate algorithms for 2 heuristic cases. Could be done easily with a priority queue
 
 
-/*
-	Algorithm 1: Modified A*
-	Require: I: The Initial State
-	Require: h: The Heuristic Function
-	Require: depth: The BFS Depth
-	1: fringe← []
-	2: S ← I
-	3: f ← 0
-	4: while ¬Goal-Test(S) do
-	5: temp←ModifiedExpand(S, depth)
-	6: for each T ∈temp do
-	7: UpdateFringe(fringe, T, f = h(T) + g(T))
-	8: end for
-	9: S ←RemoveFirst(fringe)
-	10: end while
-	11: return S
+/*	
+	This function accepts an initialState, a heuristic, and a depth.
+	At each stage, we check to see if a node is a goal state.
+	If it is, we return it.
+	Otherwise, we generate all of its descendants till depth bfsDepth using modifiedExpand, then add those nodes into a priority queue
+	sorted by f(n) = g(n) + h(n)
+	At each stage, the next node taken is the node with least cost.
+	This function also computes the total number of nodes we expand, and the largest size of the fringe at any point during the algorithm
+	'm' represents Manhattan Distance
+	't' represents Tile Mismatches
 */
 
 pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth){
@@ -373,17 +445,6 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 	return result; 
 }
 
-
-bool isPresent(puzzleState start, int tile){
-	for(int i=0;i<3;i++){
-		for(int j=0;j<3;j++){
-			if(start.positions[i][j]==tile)
-				return true;
-		}
-	}
-	return false;
-}
-
 bool checkSolvable(puzzleState p){
 	int inversions = 0;
 	int row1,row2,col1,col2;
@@ -421,7 +482,9 @@ void findZero(puzzleState p, int &row, int& col){
 	}
 }
 
-//we generate an 8 puzzle by randomly adding new tiles to an empty board
+/*
+	This function generates a random solvable board by backtracking an arbitrary amount of times from the goal state.
+*/
 puzzleState generateRandomSolvablePuzzle(){
 	puzzleState start;
 	start.positions[0][0] =0;
@@ -493,15 +556,8 @@ puzzleState generateRandomSolvablePuzzle(){
 }
 
 /*
-
-	In this program we use 0 to represent a blank tile
-	Goal state : 	[0  1  2
-					 3	4  5
-					 6  7  8]
-	Initial state is a random solvable state
-	A state is said to be solvable if it has an even number of inversions
+	Helper function to check if a state is a goal State
 */
-
 
 string checkOptimal(puzzleState p){
 	if(goalTest(p))
@@ -510,6 +566,10 @@ string checkOptimal(puzzleState p){
 		return "NO";
 }
 
+/*
+	Helper function for displaying the following:
+	Heuristic 	BfsDepth 	is Solution Optimal?	Max Fringe Size  	No of nodes expanded 	
+*/
 void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> result, char heuristic, int depth){
 	//Heuristic
 	if(heuristic=='m')
@@ -541,39 +601,16 @@ puzzleState createTest(){
 	initialState.positions[2][1]=7;
 	initialState.positions[2][2]=8;
 	initialState.depth=0;
-	initialState.parent=NULL;
 	return initialState;
 
 }
 
-// void displayPathTaken(puzzleState initialState, puzzleState p, char heuristic, int depth){
-// 	if(heuristic == 'm'){
-// 		cout<<"\n Path taken for Manhattan Distance Heuristic with depth = "<<depth<<"\n";
-// 	}
-// 	else if(heuristic == 't'){
-// 		cout<<"\n Path taken for Tile Mismatch Heuristic with depth = "<<depth<<"\n";	
-// 	}
-// 	puzzleState temp = p;
-// 	stack<puzzleState> path;
-// 	while(temp.depth!=0){
-// 		path.push(temp);
-// 		temp = *(temp.parent);
-// 	}
-// 	cout<<"HELLO";
-// 	path.push(initialState);
-// 	while(!path.empty()){
-// 		displayState(path.top());
-// 		cout<<"\n";
-// 		path.pop();
-// 	}
-// 	displayState(p);
-// }
-
-int main(int argc, char *argv[])
+int main()
 {
-	int depth=atoi(argv[1]);	
+	int depth;
+	cout<<"Enter the depth of depth limiting BFS: ";
+	cin>>depth;	
 	//cout<<"ASDF";
-	cout<<depth;
 	puzzleState initialState;
 	srand(time(NULL));
 	//Values are maxFringeSize, no of nodes generated, and final state
@@ -582,12 +619,8 @@ int main(int argc, char *argv[])
 	pair<pair<int,int>,puzzleState> result3;
 	pair<pair<int,int>,puzzleState> result4;
 
-	for(int i=0;i<3;i++){
+	for(int i=0;i<10;i++){
 		initialState = generateRandomSolvablePuzzle();
-		//'m' represents manhattan distance as heuristic
-		//'t' represents tile mismatches as heuristic
-
-		//initialState = createTest();
 		if(!checkSolvable(initialState))
 		{
 			cout<<"initial state not valid.";
@@ -599,17 +632,20 @@ int main(int argc, char *argv[])
 		result3 = modifiedAStar(initialState, 't', 1);
 		result4 = modifiedAStar(initialState, 't', depth);
 
-		cout<<"\n\n\n\nIteration"<<i<<"";
-		cout<<"\nThe initial State is :\n";
+		cout<<"\n\n\n\nIteration "<<i<<":";
+		cout<<"\nStart State is :\n";
 		displayState(initialState);
-		cout<<"\n\nHeuristic used\t   Depth used\t Solution Optimal?\t Max Fringe Size\t Nodes Generated\t Depth of Solution\n";
+		cout<<"\n\nHeuristic used\t BFSDepth used\t Solution Optimal?\t Max Fringe Size\t Nodes Expanded\t Depth of Solution\n";
 		displayCost(initialState,result1,'m',1);
 		displayCost(initialState,result2,'m',depth);	
 		displayCost(initialState,result3,'t',1);
 		displayCost(initialState,result4,'t',depth);
 		cout<<"\n\n\n\n\n\n";
-
 	}
+
+	cout<<"\nFrom this, we can conclude that Manhattan distance is a better heuristic than tile mismatches.\n\n";
+	cout<<"\nNote: Nodes expanded is the number of nodes whose children we added to the list. It is not the number of nodes in the graph.\n";
+	cout<<"Total number of nodes in the graph can easily be calculated, by checking the size of the allnodes vector."
 	return 0;
 }
 
