@@ -40,18 +40,6 @@ struct puzzleState{
 	//depth from starting state
 };
 
-struct compareManhattan{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
-		//sorts in ascending order
-	}
-};
-
-struct compareTileMismatch{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
-	}
-};
 
 void displayState(puzzleState S){
 	for(int i=0;i<3;i++){
@@ -93,6 +81,20 @@ int tileMismatch(puzzleState p){
 	}
 	return mismatches;
 } 
+
+
+struct compareManhattan{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
+		//sorts in ascending order
+	}
+};
+
+struct compareTileMismatch{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
+	}
+};
 
 bool goalTest(puzzleState p){
 	if( p.positions[0][0] == 0 && p.positions[0][1] == 1 && p.positions[0][2] == 2 &&
@@ -302,9 +304,9 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 	int maxFringeSize=1;
 	int nodesExpanded=0;
 	puzzleState S;
-	cout<<"\nFor heuristic "<<heuristic<<" and depth = "<<bfsDepth<<":\n\n";
-	cout<<"\n Initial state is:\n";
-	displayState(initialState);
+	// cout<<"\nFor heuristic "<<heuristic<<" and depth = "<<bfsDepth<<":\n\n";
+	// cout<<"\n Initial state is:\n";
+	// displayState(initialState);
 	if(heuristic=='m'){
 		//fringe is a queue sorted in increasing order of f(n) = depth + h(n)
 		priority_queue<puzzleState,vector<puzzleState>,compareManhattan> fringe;
@@ -331,9 +333,9 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			}
 			else
 				break;
-			cout<<"\n\nNext Node is\n";
-			displayState(S);
-			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
+			// cout<<"\n\nNext Node is\n";
+			// displayState(S);
+			// cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
 			
 		}
 	}
@@ -355,9 +357,9 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			if(fringe.size()>maxFringeSize)
 				maxFringeSize = fringe.size();
 			S = fringe.top();
-			cout<<"\n\nNext Node is\n";
-			displayState(S);
-			cout<<"\n\nCost of this node :"<<(S.depth + tileMismatch(S));
+			// cout<<"\n\nNext Node is\n";
+			// displayState(S);
+			// cout<<"\n\nCost of this node :"<<(S.depth + tileMismatch(S));
 			//displayState(S);
 			fringe.pop();
 		}
@@ -432,13 +434,12 @@ puzzleState generateRandomSolvablePuzzle(){
 	start.positions[2][1] =7;
 	start.positions[2][2] =8;
 	start.depth=0;
-	int swaps = rand()%2;
+	int swaps = rand()%80;
 	int row,col;
 	int direction;
-	int temp;
 	for(int i=0;i<swaps;i++){
 		findZero(start, row, col);
-		direction = rand() % 4;
+		direction = 1 + (rand() % 4);
 		//move up if possible, otherwise retry
 		if(direction == 1){
 			if(row>0){	
@@ -522,8 +523,9 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 	//Max Fringe Size
 	cout<<result.first.first<<"                \t";
 	//No of nodes generated
-	cout<<result.first.second;
-
+	cout<<result.first.second<<"		\t";
+	//How deep is the solution
+	cout<<result.second.depth;
 
 }
 
@@ -544,28 +546,28 @@ puzzleState createTest(){
 
 }
 
-void displayPathTaken(puzzleState initialState, puzzleState p, char heuristic, int depth){
-	if(heuristic == 'm'){
-		cout<<"\n Path taken for Manhattan Distance Heuristic with depth = "<<depth<<"\n";
-	}
-	else if(heuristic == 't'){
-		cout<<"\n Path taken for Tile Mismatch Heuristic with depth = "<<depth<<"\n";	
-	}
-	puzzleState temp = p;
-	stack<puzzleState> path;
-	while(temp.depth!=0){
-		path.push(temp);
-		temp = *(temp.parent);
-	}
-	cout<<"HELLO";
-	path.push(initialState);
-	while(!path.empty()){
-		displayState(path.top());
-		cout<<"\n";
-		path.pop();
-	}
-	displayState(p);
-}
+// void displayPathTaken(puzzleState initialState, puzzleState p, char heuristic, int depth){
+// 	if(heuristic == 'm'){
+// 		cout<<"\n Path taken for Manhattan Distance Heuristic with depth = "<<depth<<"\n";
+// 	}
+// 	else if(heuristic == 't'){
+// 		cout<<"\n Path taken for Tile Mismatch Heuristic with depth = "<<depth<<"\n";	
+// 	}
+// 	puzzleState temp = p;
+// 	stack<puzzleState> path;
+// 	while(temp.depth!=0){
+// 		path.push(temp);
+// 		temp = *(temp.parent);
+// 	}
+// 	cout<<"HELLO";
+// 	path.push(initialState);
+// 	while(!path.empty()){
+// 		displayState(path.top());
+// 		cout<<"\n";
+// 		path.pop();
+// 	}
+// 	displayState(p);
+// }
 
 int main(int argc, char *argv[])
 {
@@ -580,12 +582,12 @@ int main(int argc, char *argv[])
 	pair<pair<int,int>,puzzleState> result3;
 	pair<pair<int,int>,puzzleState> result4;
 
-	for(int i=0;i<1;i++){
-		//initialState = generateRandomSolvablePuzzle();
+	for(int i=0;i<3;i++){
+		initialState = generateRandomSolvablePuzzle();
 		//'m' represents manhattan distance as heuristic
 		//'t' represents tile mismatches as heuristic
 
-		initialState = createTest();
+		//initialState = createTest();
 		if(!checkSolvable(initialState))
 		{
 			cout<<"initial state not valid.";
@@ -600,16 +602,13 @@ int main(int argc, char *argv[])
 		cout<<"\n\n\n\nIteration"<<i<<"";
 		cout<<"\nThe initial State is :\n";
 		displayState(initialState);
-		cout<<"\n\nHeuristic used\t   Depth used\t Solution Optimal?\t Max Fringe Size\t Nodes Generated\n";
+		cout<<"\n\nHeuristic used\t   Depth used\t Solution Optimal?\t Max Fringe Size\t Nodes Generated\t Depth of Solution\n";
 		displayCost(initialState,result1,'m',1);
 		displayCost(initialState,result2,'m',depth);	
 		displayCost(initialState,result3,'t',1);
 		displayCost(initialState,result4,'t',depth);
-		displayPathTaken(initialState,result1.second,'m',1);
-		displayPathTaken(initialState,result2.second,'m',depth);
-		displayPathTaken(initialState,result3.second,'t',1);
-		displayPathTaken(initialState,result4.second,'t',depth);
 		cout<<"\n\n\n\n\n\n";
+
 	}
 	return 0;
 }
