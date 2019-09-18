@@ -371,14 +371,10 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 	'm' represents Manhattan Distance
 	't' represents Tile Mismatches
 */
-
 pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth){
 	int maxFringeSize=1;
 	int nodesExpanded=0;
 	puzzleState S;
-	// cout<<"\nFor heuristic "<<heuristic<<" and depth = "<<bfsDepth<<":\n\n";
-	// cout<<"\n Initial state is:\n";
-	// displayState(initialState);
 	if(heuristic=='m'){
 		//fringe is a queue sorted in increasing order of f(n) = depth + h(n)
 		priority_queue<puzzleState,vector<puzzleState>,compareManhattan> fringe;
@@ -405,9 +401,6 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			}
 			else
 				break;
-			// cout<<"\n\nNext Node is\n";
-			// displayState(S);
-			// cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
 			
 		}
 	}
@@ -429,10 +422,6 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			if(fringe.size()>maxFringeSize)
 				maxFringeSize = fringe.size();
 			S = fringe.top();
-			// cout<<"\n\nNext Node is\n";
-			// displayState(S);
-			// cout<<"\n\nCost of this node :"<<(S.depth + tileMismatch(S));
-			//displayState(S);
 			fringe.pop();
 		}
 	}
@@ -451,13 +440,13 @@ bool checkSolvable(puzzleState p){
 
     for(int i = 0; i < 9; ++i) {
         for(int j = i+1; j < 9; ++j) {
-            //Dont include the tile with 0
+            
             row1 = actualRow(i,3);
             col1 = actualColumn(i,3);
 
             row2 = actualRow(j,3);
             col2 = actualColumn(j,3);
-
+            //Dont include the tile with 0 in inversions
             if( p.positions[row1][col1] != 0 && 
             	p.positions[row2][col2] != 0 && 
             	p.positions[row1][col1] > p.positions[row2][col2])
@@ -588,7 +577,7 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 	cout<<result.second.depth;
 
 }
-
+/*
 puzzleState createTest(){
 	puzzleState initialState;
 	initialState.positions[0][0]=1;
@@ -604,6 +593,7 @@ puzzleState createTest(){
 	return initialState;
 
 }
+*/
 
 int main()
 {
@@ -649,7 +639,3 @@ int main()
 	return 0;
 }
 
-/*
-	Heuristic used	 Depth used	 Solution Optimal?	 Max Fringe size 	Nodes Generated
-	Manhattan
-*/
