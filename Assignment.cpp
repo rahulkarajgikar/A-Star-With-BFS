@@ -40,6 +40,18 @@ struct puzzleState{
 	//depth from starting state
 };
 
+struct compareManhattan{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
+		//sorts in ascending order
+	}
+};
+
+struct compareTileMismatch{
+	bool operator()(puzzleState const& p1, puzzleState const& p2){
+		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
+	}
+};
 
 void displayState(puzzleState S){
 	for(int i=0;i<3;i++){
@@ -222,9 +234,14 @@ vector<puzzleState> append(vector<puzzleState> temp1, vector<puzzleState> temp3)
 vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded, vector<puzzleState> &allnodes){
 	//temp1 can be treated as a queue of all the states expanded
 	vector<puzzleState> temp1;
-	nodesExpanded++;
 	temp1 = expand(S,allnodes);
+	if(temp1.size()==0)
+	{
+		return temp1;
+	}
+	nodesExpanded++;
 	allnodes = append(allnodes, temp1);
+	
 	vector<puzzleState> temp2 = temp1;
 	vector<puzzleState> temp3;
 	puzzleState C;
@@ -234,16 +251,25 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 			C = (*it);
 			//temp3 stores newly discovered expanded nodes
 			temp3 = expand(C, allnodes);
-			nodesExpanded++;
-			//temp1 stores all nodes that have been visited by the depth limited BFS
-			temp1 = append(temp1, temp3);
-			allnodes = append(allnodes, temp3);
+			if(temp3.size()==0)
+			{
+
+			}
+			else
+			{
+				allnodes = append(allnodes, temp3);
+				nodesExpanded++;
+				//temp1 stores all nodes that have been visited by the depth limited BFS
+				temp1 = append(temp1, temp3);
+			}
+			
 		}
 		d--;
 		temp2 = temp3;
 	}
 	return temp1;
 }
+
 
 
 //here, the character represents the heurisitic that is used
@@ -272,20 +298,6 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 	11: return S
 */
 
-struct compareManhattan{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + manhattanDistance(p1)) > (p2.depth + manhattanDistance(p2));
-		//sorts in ascending order
-	}
-};
-
-struct compareTileMismatch{
-	bool operator()(puzzleState const& p1, puzzleState const& p2){
-		return (p1.depth + tileMismatch(p1)) > (p2.depth + tileMismatch(p2));
-	}
-};
-
-
 pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heuristic, int bfsDepth){
 	int maxFringeSize=1;
 	int nodesExpanded=0;
@@ -312,11 +324,17 @@ pair<pair<int,int>,puzzleState> modifiedAStar(puzzleState initialState, char heu
 			}
 			if(fringe.size() > maxFringeSize)
 				maxFringeSize = fringe.size();
-			S = fringe.top();
+			if(fringe.size()!=0)
+			{
+				S = fringe.top();
+				fringe.pop();
+			}
+			else
+				break;
 			cout<<"\n\nNext Node is\n";
 			displayState(S);
 			cout<<"\n\nCost of this node :"<<(S.depth + manhattanDistance(S));
-			fringe.pop();
+			
 		}
 	}
 	else{
@@ -389,34 +407,87 @@ bool checkSolvable(puzzleState p){
     	return true;
 }
 
+void findZero(puzzleState p, int &row, int& col){
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			if(p.positions[i][j]==0){
+				row=i;
+				col=j;
+				return ;
+			}
+		}
+	}
+}
+
 //we generate an 8 puzzle by randomly adding new tiles to an empty board
 puzzleState generateRandomSolvablePuzzle(){
 	puzzleState start;
-	start.positions[0][0] =-1;
-	start.positions[0][1] =-1;
-	start.positions[0][2] =-1;
-	start.positions[1][0] =-1;
-	start.positions[1][1] =-1;
-	start.positions[1][2] =-1;
-	start.positions[2][0] =-1;
-	start.positions[2][1] =-1;
-	start.positions[2][2] =-1;
+	start.positions[0][0] =0;
+	start.positions[0][1] =1;
+	start.positions[0][2] =2;
+	start.positions[1][0] =3;
+	start.positions[1][1] =4;
+	start.positions[1][2] =5;
+	start.positions[2][0] =6;
+	start.positions[2][1] =7;
+	start.positions[2][2] =8;
 	start.depth=0;
-	bool solvable = false;
-	int tile;
-	cout<<"Generating puzzle";
-	while(!solvable){
-		for(int i=0; i < 9;i++){
-			tile = rand()%9;
-			//find a unique tile which has not already been inserted
-			while(isPresent(start,tile)){
-				tile = rand() % 9;
+	int swaps = rand()%2;
+	int row,col;
+	int direction;
+	int temp;
+	for(int i=0;i<swaps;i++){
+		findZero(start, row, col);
+		direction = rand() % 4;
+		//move up if possible, otherwise retry
+		if(direction == 1){
+			if(row>0){	
+				start.positions[row][col]=start.positions[row-1][col];
+				start.positions[row-1][col]=0;	
+				row= row-1;
 			}
-			start.positions[actualRow(i,3)][actualColumn(i,3)] = tile;
+			else{
+				i--;
+				continue;
+			}
 		}
-		solvable = checkSolvable(start);
+		//move down if possible, otherwise retry
+		else if(direction == 2){
+			if(row<2){	
+				start.positions[row][col]=start.positions[row+1][col];
+				start.positions[row+1][col]=0;	
+				row = row+1;
+			}
+			else{
+				i--;
+				continue;
+			}
+		}
+		//move left if possible, otherwise retry
+		else if(direction == 3){
+			if(col>0){	
+				start.positions[row][col]=start.positions[row][col-1];
+				start.positions[row][col-1]=0;	
+				col = col-1;
+			}
+			else{
+				i--;
+				continue;
+			}
+		}
+		//move right if possible, otherwise retry
+		else if(direction == 4){
+			if(col<2){	
+				start.positions[row][col]=start.positions[row][col+1];
+				start.positions[row][col+1]=0;
+				col = col+1;	
+			}
+			else{
+				i--;
+				continue;
+			}
+		}
 	}
-	cout<<"Generated puzzle";
 	return start;
 }
 
@@ -458,15 +529,15 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 
 puzzleState createTest(){
 	puzzleState initialState;
-	initialState.positions[0][0]=7;
-	initialState.positions[0][1]=5;
-	initialState.positions[0][2]=6;
-	initialState.positions[1][0]=4;
-	initialState.positions[1][1]=1;
-	initialState.positions[1][2]=3;
-	initialState.positions[2][0]=2;
-	initialState.positions[2][1]=8;
-	initialState.positions[2][2]=0;
+	initialState.positions[0][0]=1;
+	initialState.positions[0][1]=2;
+	initialState.positions[0][2]=0;
+	initialState.positions[1][0]=3;
+	initialState.positions[1][1]=4;
+	initialState.positions[1][2]=5;
+	initialState.positions[2][0]=6;
+	initialState.positions[2][1]=7;
+	initialState.positions[2][2]=8;
 	initialState.depth=0;
 	initialState.parent=NULL;
 	return initialState;
@@ -525,6 +596,7 @@ int main(int argc, char *argv[])
 		result2 = modifiedAStar(initialState, 'm', depth);
 		result3 = modifiedAStar(initialState, 't', 1);
 		result4 = modifiedAStar(initialState, 't', depth);
+
 		cout<<"\n\n\n\nIteration"<<i<<"";
 		cout<<"\nThe initial State is :\n";
 		displayState(initialState);
