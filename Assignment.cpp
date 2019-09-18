@@ -224,6 +224,7 @@ vector<puzzleState> modifiedExpand(puzzleState S, int depth, int &nodesExpanded,
 	vector<puzzleState> temp1;
 	nodesExpanded++;
 	temp1 = expand(S,allnodes);
+	allnodes = append(allnodes, temp1);
 	vector<puzzleState> temp2 = temp1;
 	vector<puzzleState> temp3;
 	puzzleState C;
@@ -457,15 +458,15 @@ void displayCost(puzzleState initialState, pair<pair<int,int>,puzzleState> resul
 
 puzzleState createTest(){
 	puzzleState initialState;
-	initialState.positions[0][0]=1;
-	initialState.positions[0][1]=2;
-	initialState.positions[0][2]=0;
-	initialState.positions[1][0]=3;
-	initialState.positions[1][1]=4;
-	initialState.positions[1][2]=5;
-	initialState.positions[2][0]=6;
-	initialState.positions[2][1]=7;
-	initialState.positions[2][2]=8;
+	initialState.positions[0][0]=7;
+	initialState.positions[0][1]=5;
+	initialState.positions[0][2]=6;
+	initialState.positions[1][0]=4;
+	initialState.positions[1][1]=1;
+	initialState.positions[1][2]=3;
+	initialState.positions[2][0]=2;
+	initialState.positions[2][1]=8;
+	initialState.positions[2][2]=0;
 	initialState.depth=0;
 	initialState.parent=NULL;
 	return initialState;
@@ -514,6 +515,11 @@ int main(int argc, char *argv[])
 		//'t' represents tile mismatches as heuristic
 
 		initialState = createTest();
+		if(!checkSolvable(initialState))
+		{
+			cout<<"initial state not valid.";
+			continue;
+		}
 
 		result1 = modifiedAStar(initialState, 'm', 1); 
 		result2 = modifiedAStar(initialState, 'm', depth);
